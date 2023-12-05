@@ -106,7 +106,7 @@ def parse_SCE_job_details(SCE_soup):
     SCE_locations = []
 
     for page in range(len(SCE_soup)):
-        positions= SCE_soup[page].find_all('div', class_ = 'jobTitle')
+        positions = SCE_soup[page].find_all('div', class_ = 'jobTitle')
         for pos in positions:
             SCE_jobs.append(pos)
             
@@ -123,22 +123,68 @@ def write_SCE_job_details(SCE_jobs, SCE_locations):
             title, work_type = working_type(po.text)
             line = ['Southern California Edison', title, 'https://www.edisoncareers.com' + SCE_jobs[SCE_jobs.index(po)].find('a').get('href'), 'N/A', place + ' (' + work_type + ')', 'N/A']
             csv_writer.writerow(line)
+
+def parse_lenovo_jobs(job_url):
+    driver.get('https://jobs.lenovo.com/en_US/careers/SearchJobs/?13036=%5B12016802%5D&13036_format=6621&7715=%5B327885%5D&7715_format=3083&listFilterMode=1&jobRecordsPerPage=10&sort=relevancy')
+    time.sleep(0.5)
+
+    lenovo_html = []
+    lenovo_soup = []
+
+    lenovo_html.append(driver.page_source)
+    lenovo_soup.append(BeautifulSoup(lenovo_html[0], 'lxml'))
+
+    next_page_button = lenovo_soup[0].find_all('a', class_='list-controls__pagination__item paginationLink')
+    next_page_button = next_page_button[:int(len(next_page_button)/2)]
+        
+    for page, i in zip(next_page_button, range(len(next_page_button))):
+        driver.get(page['href'])
+        time.sleep(1)
+        lenovo_html.append(driver.page_source)
+        lenovo_soup.append(BeautifulSoup(lenovo_html[i + 1], 'lxml'))
+        
+    return lenovo_html, lenovo_soup
+
+def parse_lenovo_job_details(lenovo_soup):
+    lenovo_jobs = []
+    lenovo_locations = []
+
+    for page in range(len(lenovo_soup)):
+        internships = lenovo_soup[page].find_all('h3', class_='article__header__text__title article__header__text__title--4')
+        for internship in internships:
+            lenovo_jobs.append(internship)
             
+        subtitles = lenovo_soup[page].find_all('div', class_='article__header__text__subtitle')
+        for subtitle in subtitles:
+            lenovo_locations.append(subtitle)
             
+    return lenovo_jobs, lenovo_locations
+
+def write_lenovo_job_details(lenovo_jobs, lenovo_locations):
+    with open('keybank.csv', 'a', newline='') as file:
+        csv_writer = csv.writer(file)
+        for int, sub in zip(lenovo_jobs, lenovo_locations):
+            subs = sub.find_all('span')
+            line = ['Lenovo', int.text.strip(), int.find('a').get('href'), 'N/A', subs[0].text.strip(), subs[2].text.strip()]
+            csv_writer.writerow(line)
+
 
 def main():
     # parse all the websites first and then close the driver
     key_html, key_soup = parse_keybank_job('https://keybank.wd5.myworkdayjobs.com/External_Career_Site')
     SCE_html, SCE_soup = parse_SCE_jobs()
+    lenovo_html, lenovo_soup = parse_lenovo_jobs('https://jobs.lenovo.com/en_US/careers/SearchJobs/?13036=%5B12016802%5D&13036_format=6621&7715=%5B327885%5D&7715_format=3083&listFilterMode=1&jobRecordsPerPage=10&sort=relevancy')
     driver.close()
     
     # individualize the data for each listing
     key_jobs, key_locations = parse_keybank_job_details(key_soup)
     SCE_jobs, SCE_locations = parse_SCE_job_details(SCE_soup)
+    lenovo_jobs, lenovo_locations = parse_lenovo_job_details(lenovo_soup)
     
     # write the individualized data to a csv file
     write_keybank_job_details(key_jobs, key_locations)
     write_SCE_job_details(SCE_jobs, SCE_locations)
+    write_lenovo_job_details(lenovo_jobs, lenovo_locations)
     
 if __name__ == '__main__':
     main()
