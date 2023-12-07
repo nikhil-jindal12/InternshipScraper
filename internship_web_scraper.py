@@ -5,13 +5,17 @@ import time
 import csv
 
 '''
-Functions: 11 / 9-12
-Loops: 15 / 6-9
-Conditionals: 4 / 9-12 
+Functions: 15 / 9-12
+Loops: 22 / 6-9
+Conditionals: 5 / 9-12 
 
 Since we are working on a web scraper, we are much more reliant on loop, rather than conditionals 
 to look through the data and find the relevant parts of the HTML text. For this reason, we will end
 up using more loops than recommended and less conditionals than recommended.
+
+Please note that you will need a strong/fast internet connection to run this code, otherwise certain 
+parts of the code may not work. The timing delays currently only allow enough time for strong internet
+connections to pull the data necessary
 '''
 
 # open the website in a Chrome browser window
@@ -27,7 +31,7 @@ def parse_keybank_job(job_url):
     '''
     # open the single-page application (SPA) in a browser window
     driver.get(job_url)
-    time.sleep(0.5)
+    time.sleep(1.5)
 
     # find a list of buttons on the page that can be clicked to change the HTML on the SPA
     pages = driver.find_elements(By.CLASS_NAME, 'css-1j096s0')
@@ -43,7 +47,7 @@ def parse_keybank_job(job_url):
     # click on each of the buttons on the page and append the new HTML to the html_text list and key_soup list
     for page in range(1,len(pages)):
         pages[page].click()
-        time.sleep(0.25)
+        time.sleep(1)
         html_text.append(driver.page_source)
         key_soup.append(BeautifulSoup(html_text[page], 'lxml'))
         
@@ -84,19 +88,18 @@ def write_keybank_job_details(jobs, locations):
     Returns: None - the data is written to a CSV file
     '''
     # write the scraped data to a csv file
-    with open('Scraped Internships.csv', 'w', newline='') as file:
+    with open('Scraped Internships.csv', 'a', newline='') as file:
         csv_writer = csv.writer(file)
         
         # include the following columns of data
         csv_writer.writerow(['Company', 'Job Title', 'Job Link', 'Location', 'Date Posted'])
-
+    
     with open('Scraped Internships.csv', 'a', newline='') as file:
-        csv_writer = csv.writer(file)
-        
+        csvwriter = csv.writer(file)
         # input the data to the csv in the following format: [Company, Job Title, Job Link, Salary, Location, Date Posted]
         for job, location in zip(jobs, range(len(locations))):
             line = ['KeyBank', job.text.split(' -')[0].strip(), 'https://keybank.wd5.myworkdayjobs.com' + job.get('href'), locations[(location * 2)].text, locations[(location * 2) + 1].text]
-            csv_writer.writerow(line)
+            csvwriter.writerow(line)
             
 def working_type(job_title):
     '''
